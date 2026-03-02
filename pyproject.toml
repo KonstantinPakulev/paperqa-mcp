@@ -1,0 +1,24 @@
+[project]
+name = "paperqa-mcp"
+version = "0.1.0"
+description = "MCP server wrapping paperqa v5 for local paper Q&A"
+requires-python = ">=3.11,<4"
+dependencies = [
+    "fastmcp>=0.1.0",
+    "paper-qa @ git+https://github.com/Future-House/paper-qa.git",
+    "aiohttp>=3.9.0",
+    "pillow>=10.0.0",
+]
+
+[project.scripts]
+paperqa-mcp = "paperqa_mcp.paperqa_mcp:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/paperqa_mcp"]
