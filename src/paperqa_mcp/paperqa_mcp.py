@@ -52,7 +52,6 @@ async def list_papers() -> dict[str, Any]:
         paper_dir = Path(settings.agent.index.paper_directory)
         pdf_files = [f.name for f in sorted(paper_dir.glob("*.pdf"))]
 
-        index_dir = Path(settings.agent.index.index_directory)
         indexed_docs: int | str
         try:
             index = await get_directory_index(settings=settings)
