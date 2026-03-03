@@ -37,8 +37,8 @@ async def ask_question(question: str) -> dict[str, Any]:
         await get_directory_index(settings=settings)
         result = await ask(question, settings=settings)
         return {
-            "question": result.question,
-            "answer": result.answer,
+            "question": result.session.question,
+            "answer": result.session.formatted_answer,
         }
     except Exception as e:
         return {"error": f"Failed to answer question: {e!s}"}
