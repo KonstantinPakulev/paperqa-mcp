@@ -25,6 +25,7 @@ def _get_settings() -> Settings:
     llm_config = _build_llm_config(llm)
     summary_llm_config = _build_llm_config(summary_llm)
     agent_llm_config = _build_llm_config(agent_llm)
+    embedding_config = _build_embedding_config(embedding)
 
     return Settings(
         llm=llm,
@@ -32,6 +33,7 @@ def _get_settings() -> Settings:
         summary_llm=summary_llm,
         summary_llm_config=summary_llm_config,
         embedding=embedding,
+        embedding_config=embedding_config,
         agent=AgentSettings(
             agent_llm=agent_llm,
             agent_llm_config=agent_llm_config,
@@ -70,6 +72,32 @@ def _build_llm_config(model: str) -> dict | None:
                     "model": model,
                     "api_key": api_key,
                     "api_base": api_base,
+                },
+            }
+        ]
+    }
+
+
+def _build_embedding_config(model: str) -> dict | None:
+    """Build LiteLLM config for OpenRouter embeddings."""
+    if not model.startswith("openrouter/"):
+        return None
+
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        raise ValueError(
+            "OPENROUTER_API_KEY environment variable required for OpenRouter models. "
+            "Set OPENROUTER_API_KEY in your environment."
+        )
+
+    return {
+        "model_list": [
+            {
+                "model_name": model,
+                "litellm_params": {
+                    "model": model,
+                    "api_key": api_key,
+                    "api_base": "https://openrouter.ai/api/v1",
                 },
             }
         ]
