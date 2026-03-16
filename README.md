@@ -21,7 +21,7 @@ Requires Python 3.11+ and `uv`.
 | `PAPERQA_AGENT_LLM` | Agent LLM model | Same as `PAPERQA_LLM` |
 | `PAPERQA_EMBEDDING` | Embedding model | `openrouter/openai/text-embedding-3-small` |
 | `ANTHROPIC_API_KEY` | Anthropic API key (for Claude models) | *Required for Claude* |
-| `OPENROUTER_API_KEY` | OpenRouter API key (for embeddings) | *Required for embeddings* |
+| `OPENROUTER_API_KEY` | OpenRouter API key (for OpenRouter LLMs and embeddings) | *Required for OpenRouter* |
 | `ZHIPUAI_API_KEY` | Zhipu AI API key (for z.ai/GLM models) | *Required for z.ai models* |
 
 ### Supported models
@@ -39,6 +39,12 @@ Requires Python 3.11+ and `uv`.
 - `openai/glm-4.5-air` - Cost-effective
 
 **Note**: z.ai models require `ZHIPUAI_API_KEY` to be set. The server automatically uses the appropriate API endpoint (`/api/paas/v4/` or `/api/coding/paas/v4/`) based on the model.
+
+#### OpenRouter models
+- `openrouter/free` - OpenRouter free-model router
+- `openrouter/<model-id>` - Any direct OpenRouter model ID, including `:free` variants
+
+**Note**: OpenRouter models require `OPENROUTER_API_KEY`. Chat-model support is built into this MCP wrapper, but PaperQA depends on agent/tool-calling behavior and some free OpenRouter routes may still be incompatible with the current `paperqa`/LiteLLM stack. Treat free variants as experimental and test them before making them your default.
 
 ### Running
 
@@ -84,6 +90,29 @@ uv run --python 3.11 --project /path/to/paperqa-mcp paperqa-mcp
   }
 }
 ```
+
+#### Using OpenRouter free models
+
+```json
+"paperqa": {
+  "command": "uv",
+  "args": [
+    "run",
+    "--python", "3.11",
+    "--project", "/path/to/paperqa-mcp",
+    "paperqa-mcp"
+  ],
+  "env": {
+    "PAPER_DIR": "/path/to/paper/references",
+    "PAPERQA_LLM": "openrouter/free",
+    "PAPERQA_SUMMARY_LLM": "openrouter/free",
+    "PAPERQA_AGENT_LLM": "openrouter/free",
+    "PAPERQA_EMBEDDING": "openrouter/openai/text-embedding-3-small"
+  }
+}
+```
+
+If `ask_question()` fails with OpenRouter-specific `tool_choice`, `tool use`, or provider-routing errors, switch to a different OpenRouter model or fall back to a non-free model/provider for the agent LLM.
 
 #### Hybrid configuration (different LLMs for different tasks)
 
@@ -131,7 +160,7 @@ You can set API keys in one of these ways:
 
 3. **Session environment** (temporary):
    ```bash
-   export ZHIPUAI_API_KEY="your-zhipuai-key" && claude-code
+   export OPENROUTER_API_KEY="your-openrouter-key" && claude-code
    ```
 
 The MCP server inherits these environment variables automatically when launched.
