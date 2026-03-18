@@ -120,12 +120,14 @@ def _register_custom_models() -> None:
 def _get_settings() -> Settings:
     _register_custom_models()
     paper_dir = Path(os.environ["PAPER_DIR"]).resolve()
+    index_dir = Path(os.environ.get("PAPERQA_INDEX_DIR", paper_dir / ".pqa")).resolve()
 
     # Read model configuration from environment variables with defaults
     llm = os.environ.get("PAPERQA_LLM", "claude-haiku-4-5-20251001")
     summary_llm = os.environ.get("PAPERQA_SUMMARY_LLM", llm)
     agent_llm = os.environ.get("PAPERQA_AGENT_LLM", llm)
     embedding = os.environ.get("PAPERQA_EMBEDDING", "openrouter/openai/text-embedding-3-small")
+    chunk_chars = int(os.environ.get("PAPERQA_CHUNK_CHARS", 5000))
 
     # Configure custom LiteLLM providers if used
     llm_config = _build_llm_config(llm)
@@ -145,11 +147,11 @@ def _get_settings() -> Settings:
             agent_llm_config=agent_llm_config,
             index=IndexSettings(
                 paper_directory=str(paper_dir),
-                index_directory=str(paper_dir / ".pqa"),
+                index_directory=str(index_dir),
                 concurrency=1,
             ),
         ),
-        parsing=ParsingSettings(multimodal=False),
+        parsing=ParsingSettings(multimodal=False, reader_config={"chunk_chars": chunk_chars, "overlap": 250}),
     )
 
 
