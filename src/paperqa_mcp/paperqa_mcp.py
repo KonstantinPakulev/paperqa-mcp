@@ -277,38 +277,23 @@ async def ask_question(question: str) -> dict[str, Any]:
 
     try:
         index = await get_directory_index(settings=settings, build=False)
-    except Exception:
-        try:
-            index = await get_directory_index(settings=settings)
-        except Exception as e:
-            return {
-                "error": (
-                    "Failed to answer question while building the paper index: "
-                    f"{_format_exception(e)}"
-                )
-            }
+    except RuntimeError:
+        return {"error": "Index not built yet. Call index_papers first."}
+    except Exception as e:
+        return {"error": f"Failed to load index: {_format_exception(e)}"}
 
-    paper_dir = Path(settings.agent.index.paper_directory)
-    pdf_names = {pdf.name for pdf in paper_dir.glob("*.pdf")}
     index_files = await index.index_files
     failed_files = sorted(
         Path(file_path).name
         for file_path, file_hash in index_files.items()
         if file_hash == FAILED_DOCUMENT_ADD_ID
     )
-    indexed_files = {
-        Path(file_path).name
-        for file_path, file_hash in index_files.items()
-        if file_hash != FAILED_DOCUMENT_ADD_ID
-    }
-    missing_files = sorted(pdf_names - indexed_files - set(failed_files))
 
-    if failed_files or missing_files:
+    if failed_files:
         return {
             "error": (
                 "Failed to answer question because the paper index is incomplete. "
-                f"Failed files: {failed_files or 'none'}. "
-                f"Missing files: {missing_files or 'none'}. "
+                f"Failed files: {failed_files}. "
                 "PaperQA caches failed files in the index, so fix the underlying "
                 "provider/indexing error and rebuild the index before retrying."
             )
@@ -323,6 +308,41 @@ async def ask_question(question: str) -> dict[str, Any]:
         "question": result.session.question,
         "answer": _strip_thinking(result.session.formatted_answer),
     }
+
+
+@mcp.tool()
+async def index_papers() -> dict[str, Any]:
+    """Index any new PDFs in the paper directory into the search index.
+
+    Must be called after adding new papers before ask_question can find them.
+    Requires the LLM provider to be available (used for citation extraction).
+    """
+    try:
+        settings = _get_settings()
+    except Exception as e:
+        return {"error": f"Failed to initialize PaperQA settings: {_format_exception(e)}"}
+
+    try:
+        index = await get_directory_index(settings=settings)
+    except Exception as e:
+        return {"error": f"Failed to index papers: {_format_exception(e)}"}
+
+    index_files = await index.index_files
+    failed_files = sorted(
+        Path(file_path).name
+        for file_path, file_hash in index_files.items()
+        if file_hash == FAILED_DOCUMENT_ADD_ID
+    )
+    indexed_count = len(index_files) - len(failed_files)
+
+    result: dict[str, Any] = {"indexed_docs": indexed_count}
+    if failed_files:
+        result["failed_files"] = failed_files
+        result["warning"] = (
+            "Some files failed to index. Fix the underlying error and call "
+            "index_papers again. Use scripts/paperqa/reindex_paper.py to retry a specific file."
+        )
+    return result
 
 
 @mcp.tool()
